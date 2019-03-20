@@ -44,6 +44,8 @@ public class Viewer extends JFrame {
 
     private int n = 256;
     private int margin = 3;
+    private double varC = 1;
+    private boolean byLecture = false;      //false - wg zajęć, true - wg wykładu dr inż. Bołdaka
 
     private int[] histImgRed = new int[n];
     private int[] histImgGreen = new int[n];
@@ -77,6 +79,8 @@ public class Viewer extends JFrame {
         histogram.add(stretchHistogram);
         JMenuItem equalizeHistograms = new JMenuItem("Equalize histograms");
         histogram.add(equalizeHistograms);
+        JMenuItem changeMode = new JMenuItem("Change mode");
+        histogram.add(changeMode);
         System.out.println("Test1");
         mouse = new MyMouseAdapter();
 
@@ -158,6 +162,9 @@ public class Viewer extends JFrame {
             }
             while (!accept);
         });
+        changeMode.addActionListener((ActionEvent e) -> {
+            byLecture = !byLecture;
+        });
         calculateHistograms.addActionListener((ActionEvent e) -> {
             if (img != null) {
                 makeHist();
@@ -180,18 +187,70 @@ public class Viewer extends JFrame {
                 });
                 t.start();
                 calculated = true;
-            } else if (img == null) {
-                System.out.println("Brak obrazka");
+            } else {
                 JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
             }
         });
         lightenHistogram.addActionListener((ActionEvent e) -> {
             if (img != null) {
-
+                BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        Color c = new Color(img.getRGB(i, j));
+                        try {
+                            if (!byLecture) {
+                                imageCopy.setRGB(i, j, new Color(
+                                        (int) (varC * Math.log10(c.getRed() + 1)),
+                                        (int) (varC * Math.log10(c.getGreen() + 1)),
+                                        (int) (varC * Math.log10(c.getBlue() + 1))
+                                ).getRGB());
+                            } else {
+                                imageCopy.setRGB(i, j, new Color(
+                                        inBetweenOf(c.getRed() + (int) varC),
+                                        inBetweenOf(c.getGreen() + (int) varC),
+                                        inBetweenOf(c.getBlue() + (int) varC)
+                                ).getRGB());
+                            }
+                        } catch (IllegalArgumentException ex) {
+//                            System.out.println(i + ", " + j);
+                        }
+                    }
+                }
+                imageLabel.setIcon(new ImageIcon(imageCopy));
+                img = imageCopy;
+            } else {
+                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
             }
         });
         dimHistogram.addActionListener((ActionEvent e) -> {
             if (img != null) {
+                BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        Color c = new Color(img.getRGB(i, j));
+                        try {
+                            if (!byLecture) {
+                                imageCopy.setRGB(i, j, new Color(
+                                        (int) (1/varC * Math.pow(c.getRed(), 2.0)),
+                                        (int) (1/varC * Math.pow(c.getGreen(), 2.0)),
+                                        (int) (1/varC * Math.pow(c.getBlue(), 2.0))
+                                ).getRGB());
+                            } else {
+                                imageCopy.setRGB(i, j, new Color(
+                                        inBetweenOf(c.getRed() - (int) varC),
+                                        inBetweenOf(c.getGreen() - (int) varC),
+                                        inBetweenOf(c.getBlue() - (int) varC)
+                                ).getRGB());
+                            }
+                        } catch (IllegalArgumentException ex) {
+//                            System.out.println(i + ", " + j);
+                        }
+                    }
+                }
+                imageLabel.setIcon(new ImageIcon(imageCopy));
+                img = imageCopy;
+            } else {
+                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
             }
         });
         stretchHistogram.addActionListener((ActionEvent e) -> {
@@ -213,13 +272,13 @@ public class Viewer extends JFrame {
                         Color c = new Color(img.getRGB(i, j));
                         double valueR = ((double) c.getRed() - (double) minR) / ((double) maxR - (double) minR) * (n - 1);
                         int newValueR = (int) valueR;
-                        newValueR = notGreaterThan(newValueR);
+                        newValueR = inBetweenOf(newValueR);
                         double valueG = ((double) c.getGreen() - (double) minG) / ((double) maxG - (double) minG) * (n - 1);
                         int newValueG = (int) valueG;
-                        newValueG = notGreaterThan(newValueG);
+                        newValueG = inBetweenOf(newValueG);
                         double valueB = ((double) c.getBlue() - (double) minB) / ((double) maxB - (double) minB) * (n - 1);
                         int newValueB = (int) valueB;
-                        newValueB = notGreaterThan(newValueB);
+                        newValueB = inBetweenOf(newValueB);
                         imageCopy.setRGB(i, j, new Color(newValueR, newValueG, newValueB).getRGB());
                     }
                 }
@@ -227,10 +286,8 @@ public class Viewer extends JFrame {
                 img = imageCopy;
                 calculated = false;
             } else if (img == null) {
-                System.out.println("Brak obrazka");
                 JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
-            } else if (!calculated) {
-                System.out.println("Histogramy nie zostały wyliczone");
+            } else {
                 JOptionPane.showMessageDialog(jPanel, "Histogramy nie zostały wyliczone");
             }
         });
@@ -284,21 +341,19 @@ public class Viewer extends JFrame {
                 img = imageCopy;
                 calculated = false;
             } else if (img == null) {
-                System.out.println("Brak obrazka");
-            } else if (!calculated) {
-                System.out.println("Histogramy nie zostały wyliczone");
+                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
+            } else {
+                JOptionPane.showMessageDialog(jPanel, "Histogramy nie zostały wyliczone");
             }
         });
     }
 
-    private int notGreaterThan(int x) {
+    private int inBetweenOf(int x) {
         if (x > n - 1) {
             x = n - 1;
-//            System.out.println("Greater");
         }
         if (x < 0) {
             x = 0;
-//            System.out.println("Below");
         }
         return x;
     }
@@ -399,13 +454,15 @@ public class Viewer extends JFrame {
             if (e.getWheelRotation() < 0) {
                 if (magnify_ratio < 8)
                     magnify_ratio *= 2;
+                varC *= 2;
             } else {
                 if (magnify_ratio > 0.25)
                     magnify_ratio /= 2;
+                varC /= 2;
             }
 //            int x =int(img.getWidth() * magnify_ratio);
-            BufferedImage temp = new BufferedImage((int) Math.round(img.getWidth() * magnify_ratio), (int) Math.round(img.getHeight() * magnify_ratio), img.getType());
-            System.out.println("Magnify_ratio: " + magnify_ratio);
+//            BufferedImage temp = new BufferedImage((int) Math.round(img.getWidth() * magnify_ratio), (int) Math.round(img.getHeight() * magnify_ratio), img.getType());
+            System.out.println("Magnify_ratio: " + magnify_ratio + ", " + varC);
         }
 
         @Override
@@ -443,17 +500,13 @@ public class Viewer extends JFrame {
                     try {
                         BufferedImage temp = img.getSubimage(offsetX, offsetY, imageLabel.getWidth(), imageLabel.getHeight());
                         imageLabel.setIcon(new ImageIcon(temp));
-                    } catch (RasterFormatException ex) {
+                    } catch (RasterFormatException ignored) {
 
                     }
                     dragging = false;
                 }
 //                jPanel.add(imageLabel, BorderLayout.CENTER);
                 repaint();
-            } else if (e.getButton() == MouseEvent.BUTTON3) {
-                System.out.println("Button3");
-                if (img != null && !dragging) {
-                }
             }
         }
 
@@ -470,7 +523,7 @@ public class Viewer extends JFrame {
 
                 }
                 repaint();
-            } catch (ArrayIndexOutOfBoundsException ex) {
+            } catch (ArrayIndexOutOfBoundsException ignored) {
             }
         }
     }
