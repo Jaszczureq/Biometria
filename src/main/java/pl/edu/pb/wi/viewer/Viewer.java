@@ -1,6 +1,10 @@
 package pl.edu.pb.wi.viewer;
 
 import com.sun.istack.internal.NotNull;
+import org.knowm.xchart.CategoryChart;
+import org.knowm.xchart.CategoryChartBuilder;
+import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.style.Styler;
 import pl.edu.pb.wi.shared.ImageSharedOperations;
 
 import javax.swing.*;
@@ -13,8 +17,9 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.RasterFormatException;
 import java.io.File;
-import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class Viewer extends JFrame {
 
@@ -25,7 +30,6 @@ public class Viewer extends JFrame {
     private final JLabel imageLabel = new JLabel();
     private final JLabel locationlabel = new JLabel();
     private final JLabel locationlabel2 = new JLabel();
-    private JMenuBar menuBar = new JMenuBar();
     private volatile boolean dragging = false;
 
     private MyMouseAdapter mouse;
@@ -36,9 +40,13 @@ public class Viewer extends JFrame {
     private int offsetX = 0, offsetY = 0;
     private int curX, curY;
 
-    private int[] histImgRed = new int[256];
-    private int[] histImgGreen = new int[256];
-    private int[] histImgBlue = new int[256];
+    private int n = 256;
+    private int margin =12;
+
+    private int[] histImgRed = new int[n];
+    private int[] histImgGreen = new int[n];
+    private int[] histImgBlue = new int[n];
+    private int[] histImgAvg = new int[n];
 
     public Viewer() {
         this.setLayout(new BorderLayout());
@@ -48,12 +56,25 @@ public class Viewer extends JFrame {
         this.setSize(640, 480);
         this.setVisible(true);
 
+        JMenuBar menuBar = new JMenuBar();
         JMenu files = new JMenu("File");
         menuBar.add(files);
+        JMenu histogram = new JMenu("Histograms");
+        menuBar.add(histogram);
         JMenuItem loadImage = new JMenuItem("Load image");
         files.add(loadImage);
         JMenuItem saveImage = new JMenuItem("Save image");
         files.add(saveImage);
+        JMenuItem calculateHistograms = new JMenuItem("Calculate histograms");
+        histogram.add(calculateHistograms);
+        JMenuItem lightenHistogram = new JMenuItem("Lighten histograms");
+        histogram.add(lightenHistogram);
+        JMenuItem dimHistogram = new JMenuItem("Darken histograms");
+        histogram.add(dimHistogram);
+        JMenuItem stretchHistogram = new JMenuItem("Stretch histograms");
+        histogram.add(stretchHistogram);
+        JMenuItem equalizeHistograms = new JMenuItem("Equalize histograms");
+        histogram.add(equalizeHistograms);
         System.out.println("Test1");
         mouse = new MyMouseAdapter();
 
@@ -135,24 +156,155 @@ public class Viewer extends JFrame {
             }
             while (!accept);
         });
+        calculateHistograms.addActionListener((ActionEvent e) -> {
+            if (img != null) {
+                makeHist();
+                Thread t = new Thread(new Runnable() {
+                    CategoryChart chart = null;
+
+                    @Override
+                    public void run() {
+                        chart = makeChart(histImgRed, "Red color");
+                        new SwingWrapper<>(chart).displayChart().setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+                        System.out.println("Drew a chart");
+                        chart = makeChart(histImgGreen, "Green color");
+                        new SwingWrapper<>(chart).displayChart().setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+                        chart = makeChart(histImgBlue, "Blue color");
+                        new SwingWrapper<>(chart).displayChart().setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+                        chart = makeChart(histImgAvg, "Average color");
+                        new SwingWrapper<>(chart).displayChart().setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+                    }
+
+                });
+                t.start();
+            }
+        });
+        lightenHistogram.addActionListener((ActionEvent e) -> {
+            if (img != null) {
+
+            }
+        });
+        dimHistogram.addActionListener((ActionEvent e) -> {
+            if (img != null) {
+            }
+        });
+        stretchHistogram.addActionListener((ActionEvent e) -> {
+            if (img != null) {
+                BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+
+                int minR = getMin(histImgRed);
+                int maxR = getMax(histImgRed);
+                System.out.println(minR+", "+maxR);
+                int minG = getMin(histImgGreen);
+                int maxG = getMax(histImgGreen);
+                System.out.println(minG+", "+maxG);
+                int minB = getMin(histImgBlue);
+                int maxB = getMax(histImgBlue);
+                System.out.println(minB+", "+maxB);
+
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        Color c = new Color(img.getRGB(i, j));
+                        double valueR = ((double) c.getRed() - (double) minR) / ((double) maxR - (double) minR) * (n - 1);
+                        int newValueR = (int) valueR;
+                        newValueR = notGreaterThan(newValueR);
+                        double valueG = ((double) c.getGreen() - (double) minG) / ((double) maxG - (double) minG) * (n - 1);
+                        int newValueG = (int) valueG;
+                        newValueG = notGreaterThan(newValueG);
+                        double valueB = ((double) c.getBlue() - (double) minB) / ((double) maxB - (double) minB) * (n - 1);
+                        int newValueB = (int) valueB;
+                        newValueB = notGreaterThan(newValueB);
+                        imageCopy.setRGB(i, j, new Color(newValueR, newValueG, newValueB).getRGB());
+                    }
+                }
+                imageLabel.setIcon(new ImageIcon(imageCopy));
+                img = imageCopy;
+            }
+            System.out.println("Stretching is Done");
+        });
+        equalizeHistograms.addActionListener((ActionEvent e) -> {
+            if (img != null) {
+                
+            }
+        });
+    }
+
+    private int notGreaterThan(int x) {
+        if (x > n - 1) {
+            x = n - 1;
+            System.out.println("Greater");
+        }
+        if (x < 0) {
+            x = 0;
+            System.out.println("Below");
+        }
+        return x;
+    }
+
+    private int getMin(int[] arr) {
+        int min = 0, x = margin;
+        while (x < n) {
+            if (arr[x] > 0) {
+                min = x;
+                break;
+            }
+            x++;
+        }
+        return min;
+    }
+
+    private int getMax(int[] arr) {
+        int max = 0, x = n - 1 - margin;
+        while (x > 0) {
+            if (arr[x] > 0) {
+                max = x;
+                break;
+            }
+            x--;
+        }
+        return max;
     }
 
     private void makeHist() {
         Arrays.fill(histImgRed, 0);
         Arrays.fill(histImgGreen, 0);
         Arrays.fill(histImgBlue, 0);
+        Arrays.fill(histImgAvg, 0);
         int temp;
         Color c;
         for (int i = 0; i < img.getWidth(); i++) {
             for (int j = 0; j < img.getHeight(); j++) {
                 temp = img.getRGB(i, j);
                 c = new Color(temp, true);
+
                 histImgRed[c.getRed()]++;
                 histImgGreen[c.getGreen()]++;
                 histImgBlue[c.getBlue()]++;
+                histImgAvg[(c.getRed() + c.getGreen() + c.getBlue()) / 3]++;
 
             }
         }
+        System.out.println("Made histogram");
+    }
+
+    private CategoryChart makeChart(int[] hist, String title) {
+
+        CategoryChart chart = new CategoryChartBuilder().width(800).height(600).title(title).build();
+
+        chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);
+        chart.getStyler().setAvailableSpaceFill(.96);
+        chart.getStyler().setOverlapped(true);
+
+        List<Integer> xData = new ArrayList<>();
+        List<Integer> yData = new ArrayList<>();
+        for (int i = 0; i < hist.length; i++) {
+            yData.add(hist[i]);
+            xData.add(i);
+        }
+
+        chart.addSeries(title, xData, yData);
+
+        return chart;
     }
 
     private class MyMouseAdapter extends MouseAdapter {
@@ -176,9 +328,6 @@ public class Viewer extends JFrame {
                 System.out.println("Dragging");
 
             }
-//            int x = imageLabel.getX();
-//            int y = imageLabel.getY();
-//            imageLabel.setLocation(e.getX(), e.getY());
         }
 
         @Override
@@ -200,10 +349,12 @@ public class Viewer extends JFrame {
         @Override
         public void mouseReleased(MouseEvent e) {
             super.mouseReleased(e);
+            System.out.println(e.getButton());
 
             String location = String.format("[%.0f, %.0f]", e.getX() / magnify_ratio, e.getY() / magnify_ratio);
             System.out.println(location);
             if (e.getButton() == MouseEvent.BUTTON1) {
+                System.out.println("Button1");
 
                 if (img != null && !dragging) {
                     Color newColor = JColorChooser.showDialog(jPanel, "Choose Pixel Color", Color.WHITE);
@@ -237,16 +388,17 @@ public class Viewer extends JFrame {
                 }
 //                jPanel.add(imageLabel, BorderLayout.CENTER);
                 repaint();
-            }
-            else if(e.getButton()==MouseEvent.BUTTON2){
-                makeHist();
+            } else if (e.getButton() == MouseEvent.BUTTON3) {
+                System.out.println("Button3");
+                if (img != null && !dragging) {
+                }
             }
         }
 
         @Override
         public void mouseMoved(MouseEvent e) {
             try {
-                String location = String.format("[%.0f, %.0f]", e.getX() * magnify_ratio, e.getY() * magnify_ratio);
+                String location = String.format("[%.0f, %.0f]", e.getX() + offsetX * magnify_ratio, e.getY() + offsetY * magnify_ratio);
                 locationlabel.setText(location);
                 if (img != null) {
                     int imagem = img.getRGB(e.getX(), e.getY());
