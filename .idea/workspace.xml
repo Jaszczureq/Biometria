@@ -2,19 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b786b26a-a347-4bfe-808f-7156e4242be8" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/PodstawyBiometrii.iml" beforeDir="false" afterPath="$PROJECT_DIR$/PodstawyBiometrii.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/PodstawyBiometrii/pl/edu/pb/wi/Main.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/PodstawyBiometrii/pl/edu/pb/wi/shared/ImageSharedOperations.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/PodstawyBiometrii/pl/edu/pb/wi/viewer/Viewer$1.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/PodstawyBiometrii/pl/edu/pb/wi/viewer/Viewer$2.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/PodstawyBiometrii/pl/edu/pb/wi/viewer/Viewer$MyMouseAdapter.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/PodstawyBiometrii/pl/edu/pb/wi/viewer/Viewer.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pl/edu/pb/wi/Main.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pl/edu/pb/wi/shared/ImageSharedOperations.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pl/edu/pb/wi/viewer/Viewer.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/pl/edu/pb/wi/viewer/Viewer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/pl/edu/pb/wi/viewer/Viewer.java" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
@@ -34,13 +23,13 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="java" value="2082" />
+          <entry key="java" value="2741" />
           <entry key="xml" value="8" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="JAVA" value="2082" />
+          <entry key="JAVA" value="2741" />
           <entry key="XML" value="8" />
         </counts>
       </usages-collector>
@@ -63,20 +52,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/pl/edu/pb/wi/viewer/Viewer.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="374">
-              <caret line="43" column="26" selection-start-line="43" selection-start-column="26" selection-end-line="43" selection-end-column="26" />
+            <state relative-caret-position="-90">
+              <caret line="297" column="9" lean-forward="true" selection-start-line="297" selection-start-column="9" selection-end-line="297" selection-end-column="9" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="jar://C:/Program Files/Java/jdk1.8.0_181/src.zip!/javax/swing/JComponent.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="149">
-              <caret line="3323" selection-start-line="3323" selection-end-line="3323" />
             </state>
           </provider>
         </entry>
@@ -202,7 +182,7 @@
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1553046509182" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1553048761739" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="project.structure.last.edited" value="Problems" />
     <property name="project.structure.proportion" value="0.15" />
@@ -251,12 +231,12 @@
       <workItem from="1551886277300" duration="3413000" />
       <workItem from="1552306560932" duration="48000" />
       <workItem from="1552488051707" duration="3907000" />
-      <workItem from="1553027591546" duration="13866000" />
+      <workItem from="1553027591546" duration="16711000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="21234000" />
+    <option name="totallyTimeSpent" value="24079000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
@@ -305,9 +285,9 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/main/java/pl/edu/pb/wi/viewer/Viewer.java</url>
-          <line>216</line>
+          <line>274</line>
           <properties />
-          <option name="timeStamp" value="12" />
+          <option name="timeStamp" value="16" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
@@ -350,8 +330,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/pl/edu/pb/wi/viewer/Viewer.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="374">
-          <caret line="43" column="26" selection-start-line="43" selection-start-column="26" selection-end-line="43" selection-end-column="26" />
+        <state relative-caret-position="-90">
+          <caret line="297" column="9" lean-forward="true" selection-start-line="297" selection-start-column="9" selection-end-line="297" selection-end-column="9" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

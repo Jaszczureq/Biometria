@@ -40,8 +40,10 @@ public class Viewer extends JFrame {
     private int offsetX = 0, offsetY = 0;
     private int curX, curY;
 
+    private boolean calculated = false;
+
     private int n = 256;
-    private int margin =12;
+    private int margin = 3;
 
     private int[] histImgRed = new int[n];
     private int[] histImgGreen = new int[n];
@@ -177,6 +179,10 @@ public class Viewer extends JFrame {
 
                 });
                 t.start();
+                calculated = true;
+            } else if (img == null) {
+                System.out.println("Brak obrazka");
+                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
             }
         });
         lightenHistogram.addActionListener((ActionEvent e) -> {
@@ -189,18 +195,18 @@ public class Viewer extends JFrame {
             }
         });
         stretchHistogram.addActionListener((ActionEvent e) -> {
-            if (img != null) {
+            if (img != null && calculated) {
                 BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
 
                 int minR = getMin(histImgRed);
                 int maxR = getMax(histImgRed);
-                System.out.println(minR+", "+maxR);
+                System.out.println(minR + ", " + maxR);
                 int minG = getMin(histImgGreen);
                 int maxG = getMax(histImgGreen);
-                System.out.println(minG+", "+maxG);
+                System.out.println(minG + ", " + maxG);
                 int minB = getMin(histImgBlue);
                 int maxB = getMax(histImgBlue);
-                System.out.println(minB+", "+maxB);
+                System.out.println(minB + ", " + maxB);
 
                 for (int i = 0; i < img.getWidth(); i++) {
                     for (int j = 0; j < img.getHeight(); j++) {
@@ -219,12 +225,68 @@ public class Viewer extends JFrame {
                 }
                 imageLabel.setIcon(new ImageIcon(imageCopy));
                 img = imageCopy;
+                calculated = false;
+            } else if (img == null) {
+                System.out.println("Brak obrazka");
+                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
+            } else if (!calculated) {
+                System.out.println("Histogramy nie zostały wyliczone");
+                JOptionPane.showMessageDialog(jPanel, "Histogramy nie zostały wyliczone");
             }
-            System.out.println("Stretching is Done");
         });
         equalizeHistograms.addActionListener((ActionEvent e) -> {
-            if (img != null) {
-                
+            if (img != null && calculated) {
+                BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+
+                double[] probR = new double[n];
+                double[] probG = new double[n];
+                double[] probB = new double[n];
+                double sum = img.getHeight() * img.getWidth();
+                for (int i = 0; i < n; i++) {
+                    probR[i] = (double) histImgRed[i] / sum;
+                    probG[i] = (double) histImgGreen[i] / sum;
+                    probB[i] = (double) histImgBlue[i] / sum;
+                }
+                double[] cumR = new double[n];
+                cumR[0] = probR[0];
+                cumR[n - 1] = 1;
+                double[] cumG = new double[n];
+                cumG[0] = probG[0];
+                cumG[n - 1] = 1;
+                double[] cumB = new double[n];
+                cumB[0] = probB[0];
+                cumB[n - 1] = 1;
+
+                for (int i = 1; i < n - 1; i++) {
+                    cumR[i] = cumR[i - 1] + probR[i];
+                    cumG[i] = cumG[i - 1] + probG[i];
+                    cumB[i] = cumB[i - 1] + probB[i];
+                }
+                System.out.println("Cumulative Sum Done");
+
+                double[] LutR = new double[n];
+                double[] LutG = new double[n];
+                double[] LutB = new double[n];
+                for (int i = 1; i < n; i++) {
+                    LutR[i] = (cumR[i] - cumR[0]) / (1 - cumR[0]) * (n - 1);
+                    LutG[i] = (cumG[i] - cumG[0]) / (1 - cumG[0]) * (n - 1);
+                    LutB[i] = (cumB[i] - cumB[0]) / (1 - cumB[0]) * (n - 1);
+                }
+                System.out.println("Look-Up-Table Done");
+
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        Color c = new Color(img.getRGB(i, j));
+                        imageCopy.setRGB(i, j, new Color((int) LutR[c.getRed()], (int) LutG[c.getGreen()], (int) LutB[c.getBlue()]).getRGB());
+                    }
+                }
+                imageLabel.setIcon(new ImageIcon(imageCopy));
+                img = imageCopy;
+                calculated = false;
+            } else if (img == null) {
+                System.out.println("Brak obrazka");
+            } else if (!calculated) {
+                System.out.println("Histogramy nie zostały wyliczone");
             }
         });
     }
@@ -232,11 +294,11 @@ public class Viewer extends JFrame {
     private int notGreaterThan(int x) {
         if (x > n - 1) {
             x = n - 1;
-            System.out.println("Greater");
+//            System.out.println("Greater");
         }
         if (x < 0) {
             x = 0;
-            System.out.println("Below");
+//            System.out.println("Below");
         }
         return x;
     }
