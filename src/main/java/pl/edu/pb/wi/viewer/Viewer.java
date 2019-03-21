@@ -1,6 +1,5 @@
 package pl.edu.pb.wi.viewer;
 
-import com.sun.istack.internal.NotNull;
 import org.knowm.xchart.CategoryChart;
 import org.knowm.xchart.CategoryChartBuilder;
 import org.knowm.xchart.SwingWrapper;
@@ -17,6 +16,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.RasterFormatException;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,23 +24,24 @@ import java.util.List;
 public class Viewer extends JFrame {
 
     private BufferedImage img;
+    private BufferedImage imageCopy;
+
+    private JMenuItem loadImage, saveImage, calculateHistograms, lightenHistogram,
+            dimHistogram, stretchHistogram, equalizeHistograms, changeMode, undo,
+            treasholdingRed, treasholdingGreen, treasholdingBlue, treasholdingAvg;
 
     private JPanel jPanel = new JPanel();
-    private final JToolBar jToolBar = new JToolBar();
     private final JLabel imageLabel = new JLabel();
     private final JLabel locationlabel = new JLabel();
     private final JLabel locationlabel2 = new JLabel();
+    private final JLabel locationlabel23 = new JLabel();
     private volatile boolean dragging = false;
 
     private MyMouseAdapter mouse;
 
-    @NotNull
-    private
-    double magnify_ratio = 1;
+    private double magnify_ratio = 1;
     private int offsetX = 0, offsetY = 0;
     private int curX, curY;
-
-    private boolean calculated = false;
 
     private int n = 256;
     private int margin = 3;
@@ -55,48 +56,18 @@ public class Viewer extends JFrame {
     public Viewer() {
         this.setLayout(new BorderLayout());
         this.setTitle("Podstawy Biometrii");
-//        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.setSize(640, 480);
         this.setVisible(true);
 
-        JMenuBar menuBar = new JMenuBar();
-        JMenu files = new JMenu("File");
-        menuBar.add(files);
-        JMenu histogram = new JMenu("Histograms");
-        menuBar.add(histogram);
-        JMenuItem loadImage = new JMenuItem("Load image");
-        files.add(loadImage);
-        JMenuItem saveImage = new JMenuItem("Save image");
-        files.add(saveImage);
-        JMenuItem calculateHistograms = new JMenuItem("Calculate histograms");
-        histogram.add(calculateHistograms);
-        JMenuItem lightenHistogram = new JMenuItem("Lighten histograms");
-        histogram.add(lightenHistogram);
-        JMenuItem dimHistogram = new JMenuItem("Darken histograms");
-        histogram.add(dimHistogram);
-        JMenuItem stretchHistogram = new JMenuItem("Stretch histograms");
-        histogram.add(stretchHistogram);
-        JMenuItem equalizeHistograms = new JMenuItem("Equalize histograms");
-        histogram.add(equalizeHistograms);
-        JMenuItem changeMode = new JMenuItem("Change mode");
-        histogram.add(changeMode);
-        System.out.println("Test1");
-        mouse = new MyMouseAdapter();
-
-        this.add(jPanel);
-        jPanel.setLayout(new BorderLayout());
-        jPanel.add(menuBar, BorderLayout.NORTH);
-        jPanel.add(this.imageLabel, BorderLayout.CENTER);
-        imageLabel.setLocation(0, 0);
-//        imageLabel.setHorizontalAlignment(JLabel.LEFT);
-//        imageLabel.setVerticalAlignment(JLabel.NORTH);
-
+        initComponents();
+        JToolBar jToolBar = new JToolBar();
         jPanel.add(jToolBar, BorderLayout.SOUTH);
         jToolBar.setLayout(new GridLayout(0, 6));
 
         jToolBar.add(locationlabel);
         jToolBar.add(locationlabel2);
+        jToolBar.add(locationlabel23);
 
 
         imageLabel.addMouseMotionListener(mouse);
@@ -105,6 +76,11 @@ public class Viewer extends JFrame {
 
         loadImage.addActionListener((ActionEvent e) -> {
             JFileChooser imageOpener = new JFileChooser();
+            try {
+                imageOpener.setCurrentDirectory(new File(new File(".").getCanonicalPath()));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
             imageOpener.setFileFilter(new FileFilter() {
                 @Override
                 public boolean accept(File f) {
@@ -126,7 +102,6 @@ public class Viewer extends JFrame {
                 this.imageLabel.setIcon(new ImageIcon(img));
             }
         });
-
         saveImage.addActionListener((ActionEvent e) -> {
             JFileChooser imageSaver = new JFileChooser();
             boolean accept = false;
@@ -156,15 +131,19 @@ public class Viewer extends JFrame {
                     } else
                         accept = true;
                     String path = imageSaver.getSelectedFile().getPath();
-                    BufferedImage img = ImageSharedOperations.convertIconToImage((ImageIcon) this.imageLabel.getIcon());
+                    //BufferedImage img = ImageSharedOperations.convertIconToImage((ImageIcon) this.imageLabel.getIcon());
                     ImageSharedOperations.saveImage(img, path);
                 }
             }
             while (!accept);
         });
-        changeMode.addActionListener((ActionEvent e) -> {
-            byLecture = !byLecture;
+        undo.addActionListener((ActionEvent e) -> {
+            if (img != null && imageCopy != null) {
+                img = imageCopy;
+                imageLabel.setIcon(new ImageIcon(img));
+            }
         });
+        changeMode.addActionListener((ActionEvent e) -> byLecture = !byLecture);
         calculateHistograms.addActionListener((ActionEvent e) -> {
             if (img != null) {
                 makeHist();
@@ -186,14 +165,14 @@ public class Viewer extends JFrame {
 
                 });
                 t.start();
-                calculated = true;
+//                calculated = true;
             } else {
                 JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
             }
         });
         lightenHistogram.addActionListener((ActionEvent e) -> {
             if (img != null) {
-                BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+                imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
                 for (int i = 0; i < img.getWidth(); i++) {
                     for (int j = 0; j < img.getHeight(); j++) {
                         Color c = new Color(img.getRGB(i, j));
@@ -224,19 +203,24 @@ public class Viewer extends JFrame {
         });
         dimHistogram.addActionListener((ActionEvent e) -> {
             if (img != null) {
-                BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+                imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        imageCopy.setRGB(i, j, img.getRGB(i, j));
+                    }
+                }
                 for (int i = 0; i < img.getWidth(); i++) {
                     for (int j = 0; j < img.getHeight(); j++) {
                         Color c = new Color(img.getRGB(i, j));
                         try {
                             if (!byLecture) {
-                                imageCopy.setRGB(i, j, new Color(
-                                        (int) (1/varC * Math.pow(c.getRed(), 2.0)),
-                                        (int) (1/varC * Math.pow(c.getGreen(), 2.0)),
-                                        (int) (1/varC * Math.pow(c.getBlue(), 2.0))
+                                img.setRGB(i, j, new Color(
+                                        inBetweenOf((int) (1 / varC * Math.pow(c.getRed(), 2.0))),
+                                        inBetweenOf((int) (1 / varC * Math.pow(c.getGreen(), 2.0))),
+                                        inBetweenOf((int) (1 / varC * Math.pow(c.getBlue(), 2.0)))
                                 ).getRGB());
                             } else {
-                                imageCopy.setRGB(i, j, new Color(
+                                img.setRGB(i, j, new Color(
                                         inBetweenOf(c.getRed() - (int) varC),
                                         inBetweenOf(c.getGreen() - (int) varC),
                                         inBetweenOf(c.getBlue() - (int) varC)
@@ -247,16 +231,21 @@ public class Viewer extends JFrame {
                         }
                     }
                 }
-                imageLabel.setIcon(new ImageIcon(imageCopy));
-                img = imageCopy;
+                //imageLabel.setIcon(new ImageIcon(img));
+                //img = imageCopy;
             } else {
                 JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
             }
         });
         stretchHistogram.addActionListener((ActionEvent e) -> {
-            if (img != null && calculated) {
-                BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
-
+            if (img != null) {
+                makeHist();
+                imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        imageCopy.setRGB(i, j, img.getRGB(i, j));
+                    }
+                }
                 int minR = getMin(histImgRed);
                 int maxR = getMax(histImgRed);
                 System.out.println(minR + ", " + maxR);
@@ -279,21 +268,20 @@ public class Viewer extends JFrame {
                         double valueB = ((double) c.getBlue() - (double) minB) / ((double) maxB - (double) minB) * (n - 1);
                         int newValueB = (int) valueB;
                         newValueB = inBetweenOf(newValueB);
-                        imageCopy.setRGB(i, j, new Color(newValueR, newValueG, newValueB).getRGB());
+                        img.setRGB(i, j, new Color(newValueR, newValueG, newValueB).getRGB());
                     }
                 }
-                imageLabel.setIcon(new ImageIcon(imageCopy));
-                img = imageCopy;
-                calculated = false;
-            } else if (img == null) {
-                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
+//                imageLabel.setIcon(new ImageIcon(img));
+//                img = imageCopy;
+//                calculated = false;
             } else {
-                JOptionPane.showMessageDialog(jPanel, "Histogramy nie zostały wyliczone");
+                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
             }
         });
         equalizeHistograms.addActionListener((ActionEvent e) -> {
-            if (img != null && calculated) {
+            if (img != null) {
                 BufferedImage imageCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+                makeHist();
 
                 double[] probR = new double[n];
                 double[] probG = new double[n];
@@ -339,13 +327,120 @@ public class Viewer extends JFrame {
                 }
                 imageLabel.setIcon(new ImageIcon(imageCopy));
                 img = imageCopy;
-                calculated = false;
-            } else if (img == null) {
-                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
+//                calculated = false;
             } else {
-                JOptionPane.showMessageDialog(jPanel, "Histogramy nie zostały wyliczone");
+                JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
             }
         });
+        treasholdingRed.addActionListener((ActionEvent e) -> {
+            if (!isImgLoaded())
+                return;
+            System.out.println("Img is loaded");
+            for (int i = 0; i < img.getWidth(); i++) {
+                for (int j = 0; j < img.getHeight(); j++) {
+                    Color c = new Color(img.getRGB(i, j));
+                    int red = c.getRed();
+                    img.setRGB(i, j, new Color(red, red, red).getRGB());
+                }
+            }
+            imageLabel.setIcon(new ImageIcon(img));
+        });
+        treasholdingGreen.addActionListener((ActionEvent e) -> {
+            if (isImgLoaded())
+                return;
+            System.out.println("Img is loaded");
+            for (int i = 0; i < img.getWidth(); i++) {
+                for (int j = 0; j < img.getHeight(); j++) {
+                    Color c = new Color(img.getRGB(i, j));
+                    int green = c.getGreen();
+                    img.setRGB(i, j, new Color(green, green, green).getRGB());
+                }
+            }
+            imageLabel.setIcon(new ImageIcon(img));
+        });
+        treasholdingBlue.addActionListener((ActionEvent e) -> {
+            if (isImgLoaded())
+                return;
+            System.out.println("Img is loaded");
+            for (int i = 0; i < img.getWidth(); i++) {
+                for (int j = 0; j < img.getHeight(); j++) {
+                    Color c = new Color(img.getRGB(i, j));
+                    int blue = c.getBlue();
+                    img.setRGB(i, j, new Color(blue, blue, blue).getRGB());
+                }
+            }
+            imageLabel.setIcon(new ImageIcon(img));
+        });
+        treasholdingAvg.addActionListener((ActionEvent e) -> {
+            if (isImgLoaded())
+                return;
+            System.out.println("Img is loaded");
+            for (int i = 0; i < img.getWidth(); i++) {
+                for (int j = 0; j < img.getHeight(); j++) {
+                    Color c = new Color(img.getRGB(i, j));
+                    double avg = 0.31 * c.getRed() + 0.58 * c.getGreen() + 0.11 * c.getBlue();
+                    img.setRGB(i, j, new Color((int) avg, (int) avg, (int) avg).getRGB());
+                }
+            }
+            imageLabel.setIcon(new ImageIcon(img));
+        });
+    }
+
+    private boolean isImgLoaded() {
+        if (img == null) {
+            JOptionPane.showMessageDialog(jPanel, "Brak obrazka");
+            return false;
+        } else
+            return true;
+    }
+
+    private void initComponents() {
+
+        JMenuBar menuBar = new JMenuBar();
+        JMenu files = new JMenu("File");
+        menuBar.add(files);
+        JMenu histogram = new JMenu("Histograms");
+        menuBar.add(histogram);
+        JMenu binariization = new JMenu("Binarization");
+        menuBar.add(binariization);
+        JMenu treas = new JMenu("Treasholing");
+        binariization.add(treas);
+        loadImage = new JMenuItem("Load image");
+        files.add(loadImage);
+        saveImage = new JMenuItem("Save image");
+        files.add(saveImage);
+        undo = new JMenuItem("Undo");
+        undo.setAccelerator(KeyStroke.getKeyStroke("Z"));
+        files.add(undo);
+        calculateHistograms = new JMenuItem("Calculate histograms");
+        histogram.add(calculateHistograms);
+        lightenHistogram = new JMenuItem("Lighten histograms");
+        histogram.add(lightenHistogram);
+        dimHistogram = new JMenuItem("Darken histograms");
+        histogram.add(dimHistogram);
+        stretchHistogram = new JMenuItem("Stretch histograms");
+        histogram.add(stretchHistogram);
+        equalizeHistograms = new JMenuItem("Equalize histograms");
+        histogram.add(equalizeHistograms);
+        treasholdingRed = new JMenuItem("Red");
+        treas.add(treasholdingRed);
+        treasholdingGreen = new JMenuItem("Green");
+        treas.add(treasholdingGreen);
+        treasholdingBlue = new JMenuItem("Blue");
+        treas.add(treasholdingBlue);
+        treasholdingAvg = new JMenuItem("Average");
+        treas.add(treasholdingAvg);
+        changeMode = new JMenuItem("Change mode");
+        histogram.add(changeMode);
+
+        System.out.println("Test1");
+        mouse = new MyMouseAdapter();
+
+        this.add(jPanel);
+        jPanel.setLayout(new BorderLayout());
+        jPanel.add(menuBar, BorderLayout.NORTH);
+        jPanel.add(this.imageLabel, BorderLayout.CENTER);
+        imageLabel.setLocation(0, 0);
     }
 
     private int inBetweenOf(int x) {
@@ -463,6 +558,7 @@ public class Viewer extends JFrame {
 //            int x =int(img.getWidth() * magnify_ratio);
 //            BufferedImage temp = new BufferedImage((int) Math.round(img.getWidth() * magnify_ratio), (int) Math.round(img.getHeight() * magnify_ratio), img.getType());
             System.out.println("Magnify_ratio: " + magnify_ratio + ", " + varC);
+            locationlabel23.setText("C: " + varC);
         }
 
         @Override
