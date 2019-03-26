@@ -28,7 +28,8 @@ public class Viewer extends JFrame {
 
     private JMenuItem loadImage, saveImage, calculateHistograms, lightenHistogram,
             dimHistogram, stretchHistogram, equalizeHistograms, changeMode, undo,
-            treasholdingRed, treasholdingGreen, treasholdingBlue, treasholdingAvg;
+            treasholdingRed, treasholdingGreen, treasholdingBlue, treasholdingAvg,
+            bernsens, manual, otsu, niblack;
 
     private JPanel jPanel = new JPanel();
     private final JLabel imageLabel = new JLabel();
@@ -372,7 +373,7 @@ public class Viewer extends JFrame {
             imageLabel.setIcon(new ImageIcon(img));
         });
         treasholdingAvg.addActionListener((ActionEvent e) -> {
-            if (isImgLoaded())
+            if (!isImgLoaded())
                 return;
             System.out.println("Img is loaded");
             for (int i = 0; i < img.getWidth(); i++) {
@@ -384,6 +385,46 @@ public class Viewer extends JFrame {
             }
             imageLabel.setIcon(new ImageIcon(img));
         });
+        bernsens.addActionListener((ActionEvent e) -> {
+            if (!isImgLoaded())
+                return;
+            System.out.println("Img is loaded");
+            for (int i = 0; i < img.getWidth(); i++) {
+                for (int j = 0; j < img.getHeight(); j++) {
+                    int temp[] = findMinMaxGrey(i, j, 1);
+                    int t = (temp[0] + temp[1]) / 2;
+                    int l = temp[1] - temp[0];
+                    if (l >= t)
+                        img.setRGB(i, j, new Color(0, 0, 0).getRGB());
+                    else
+                        img.setRGB(i, j, new Color(255, 255, 255).getRGB());
+                }
+            }
+            imageLabel.setIcon(new ImageIcon(img));
+        });
+    }
+
+    private int[] findMinMaxGrey(int i, int j, int r) {
+        int[] arr = {256, -1};
+        int counter=0;
+
+        for (int k = i - r; k <= i + r; k++) {
+            for (int l = j - r; l <= j + r; l++) {
+                counter++;
+                try {
+                    if (k != i && l != j) {
+                        Color c = new Color(img.getRGB(k, l));
+                        if (arr[0] > c.getRed())
+                            arr[0] = c.getRed();
+                        if (arr[1] < c.getRed())
+                            arr[1] = c.getRed();
+                    }
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                }
+            }
+        }
+
+        return arr;
     }
 
     private boolean isImgLoaded() {
@@ -403,8 +444,8 @@ public class Viewer extends JFrame {
         menuBar.add(histogram);
         JMenu binariization = new JMenu("Binarization");
         menuBar.add(binariization);
-        JMenu treas = new JMenu("Treasholing");
-        binariization.add(treas);
+        JMenu greyScale = new JMenu("Grey Scale");
+        binariization.add(greyScale);
         loadImage = new JMenuItem("Load image");
         files.add(loadImage);
         saveImage = new JMenuItem("Save image");
@@ -423,13 +464,21 @@ public class Viewer extends JFrame {
         equalizeHistograms = new JMenuItem("Equalize histograms");
         histogram.add(equalizeHistograms);
         treasholdingRed = new JMenuItem("Red");
-        treas.add(treasholdingRed);
+        greyScale.add(treasholdingRed);
         treasholdingGreen = new JMenuItem("Green");
-        treas.add(treasholdingGreen);
+        greyScale.add(treasholdingGreen);
         treasholdingBlue = new JMenuItem("Blue");
-        treas.add(treasholdingBlue);
+        greyScale.add(treasholdingBlue);
         treasholdingAvg = new JMenuItem("Average");
-        treas.add(treasholdingAvg);
+        greyScale.add(treasholdingAvg);
+        bernsens = new JMenuItem("Bernsen's");
+        binariization.add(bernsens);
+        manual = new JMenuItem("Manual");
+        binariization.add(manual);
+        otsu = new JMenuItem("Otsu's");
+        binariization.add(otsu);
+        niblack = new JMenuItem("Niblack's");
+        binariization.add(niblack);
         changeMode = new JMenuItem("Change mode");
         histogram.add(changeMode);
 
