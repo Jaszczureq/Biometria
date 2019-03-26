@@ -26,7 +26,7 @@ public class Viewer extends JFrame {
     private BufferedImage img;
     private BufferedImage imageCopy;
 
-    private JMenuItem loadImage, saveImage, calculateHistograms, lightenHistogram,
+    private JMenuItem loadImage, saveImage, loadImg, calculateHistograms, lightenHistogram,
             dimHistogram, stretchHistogram, equalizeHistograms, changeMode, undo,
             treasholdingRed, treasholdingGreen, treasholdingBlue, treasholdingAvg,
             bernsens, manual, otsu, niblack;
@@ -43,6 +43,7 @@ public class Viewer extends JFrame {
     private double magnify_ratio = 1;
     private int offsetX = 0, offsetY = 0;
     private int curX, curY;
+    String lastPath;
 
     private int n = 256;
     private int margin = 3;
@@ -99,8 +100,20 @@ public class Viewer extends JFrame {
             int returnValue = imageOpener.showDialog(null, "Select image");
             if (returnValue == JFileChooser.APPROVE_OPTION) {
 //                String temp=imageOpener.getSelectedFile().getPath();
-                img = ImageSharedOperations.loadImage(imageOpener.getSelectedFile().getPath());
+                lastPath = imageOpener.getSelectedFile().getPath();
+                img = ImageSharedOperations.loadImage(lastPath);
                 this.imageLabel.setIcon(new ImageIcon(img));
+            }
+        });
+        loadImg.addActionListener((ActionEvent e) -> {
+            String temp;
+            try {
+                System.out.println("Smth");
+                temp = new File(".").getCanonicalPath() + "/test_rgb.png";
+                img = ImageSharedOperations.loadImage(temp);
+                this.imageLabel.setIcon(new ImageIcon(img));
+            } catch (IOException ex) {
+                ex.printStackTrace();
             }
         });
         saveImage.addActionListener((ActionEvent e) -> {
@@ -347,7 +360,7 @@ public class Viewer extends JFrame {
             imageLabel.setIcon(new ImageIcon(img));
         });
         treasholdingGreen.addActionListener((ActionEvent e) -> {
-            if (isImgLoaded())
+            if (!isImgLoaded())
                 return;
             System.out.println("Img is loaded");
             for (int i = 0; i < img.getWidth(); i++) {
@@ -360,7 +373,7 @@ public class Viewer extends JFrame {
             imageLabel.setIcon(new ImageIcon(img));
         });
         treasholdingBlue.addActionListener((ActionEvent e) -> {
-            if (isImgLoaded())
+            if (!isImgLoaded())
                 return;
             System.out.println("Img is loaded");
             for (int i = 0; i < img.getWidth(); i++) {
@@ -406,7 +419,7 @@ public class Viewer extends JFrame {
 
     private int[] findMinMaxGrey(int i, int j, int r) {
         int[] arr = {256, -1};
-        int counter=0;
+        int counter = 0;
 
         for (int k = i - r; k <= i + r; k++) {
             for (int l = j - r; l <= j + r; l++) {
@@ -448,6 +461,9 @@ public class Viewer extends JFrame {
         binariization.add(greyScale);
         loadImage = new JMenuItem("Load image");
         files.add(loadImage);
+        loadImg = new JMenuItem("LoadImg");
+        loadImg.setAccelerator(KeyStroke.getKeyStroke("L"));
+        files.add(loadImg);
         saveImage = new JMenuItem("Save image");
         files.add(saveImage);
         undo = new JMenuItem("Undo");
