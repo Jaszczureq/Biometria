@@ -404,19 +404,22 @@ public class Viewer extends JFrame {
             if (!isImgLoaded())
                 return;
             System.out.println("Img is loaded");
+            BufferedImage deepCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
             int r = Integer.parseInt(JDialogClass.getInput("Enter radius", new JFrame()));
-            for (int i = 0; i < img.getWidth(); i++) {
-                for (int j = 0; j < img.getHeight(); j++) {
-                    int temp[] = findMinMaxGrey(i, j, r);
-                    int t = (temp[0] + temp[1]) / 2;
-                    int l = (temp[1] - temp[0]);
-                    if (l <= t)
-                        img.setRGB(i, j, new Color(0, 0, 0).getRGB());
-                    else
-                        img.setRGB(i, j, new Color(255, 255, 255).getRGB());
+
+            Thread th = new Thread(() -> {
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        int temp[] = findMinMaxGrey(i, j, r);
+                        int t = (temp[0] + temp[1]) / 2;
+                        int l = (temp[1] - temp[0]);
+                        deepCopy.setRGB(i, j, (l < t) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+                    }
                 }
-            }
-            imageLabel.setIcon(new ImageIcon(img));
+            });
+            th.start();
+            imageLabel.setIcon(new ImageIcon(deepCopy));
+            doneDialog();
         });
         manual.addActionListener((ActionEvent e) -> {
             if (!isImgLoaded())
@@ -500,16 +503,38 @@ public class Viewer extends JFrame {
         niblack.addActionListener((ActionEvent e) -> {
             if (!isImgLoaded())
                 return;
-            int k=1;
+            BufferedImage deepCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+            double k = Double.parseDouble(JDialogClass.getInput("Enter k param", new JFrame()));
 
             for (int i = 0; i < img.getWidth(); i++) {
                 for (int j = 0; j < img.getHeight(); j++) {
-                    double threshold=findAvgGrey(i,j,1)+k;
+                    double avg = findAvgGrey(i, j, 1);
+                    double sd = standardDiviation(i, j, 1, avg);
+                    double threshold = avg + (k * sd);
                     Color c = new Color(img.getRGB(i, j));
-                    img.setRGB(i, j, (c.getRed() < threshold) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+//                    double sd = standardDiviation(i, j, findAvgGrey(i, j, 1));
+                    deepCopy.setRGB(i, j, (c.getRed() < threshold) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
                 }
             }
+            imageLabel.setIcon(new ImageIcon(deepCopy));
+            doneDialog();
         });
+    }
+
+    private double standardDiviation(int i, int j, int r, double avg) {
+        double sum = 0;
+        int counter = 0;
+        for (int k = i - r; k <= i + r; k++) {
+            for (int l = j - r; l <= j + r; l++) {
+                try {
+                    Color c = new Color(img.getRGB(k, l));
+                    sum += Math.pow((double) c.getRed() - avg, 2);
+                    counter++;
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                }
+            }
+        }
+        return Math.sqrt(sum / counter);
     }
 
     private void doneDialog() {
@@ -538,23 +563,24 @@ public class Viewer extends JFrame {
         }
         return arr;
     }
-    private int findAvgGrey(int i, int j, int r) {
+
+    private double findAvgGrey(int i, int j, int r) {
 //        int[] arr = {256, -1};
-        int sum=0, counter=0;
+        int sum = 0, counter = 0;
 
         for (int k = i - r; k <= i + r; k++) {
             for (int l = j - r; l <= j + r; l++) {
                 try {
 //                    if (!(k == i && l == j)) {
-                        Color c = new Color(img.getRGB(k, l));
-                        sum+=c.getRed();
-                        counter++;
+                    Color c = new Color(img.getRGB(k, l));
+                    sum += c.getRed();
+                    counter++;
 //                    }
                 } catch (ArrayIndexOutOfBoundsException ex) {
                 }
             }
         }
-        return sum/counter;
+        return sum / counter;
     }
 
     private boolean isImgLoaded() {

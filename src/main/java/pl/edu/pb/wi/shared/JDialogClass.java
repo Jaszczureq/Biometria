@@ -15,13 +15,13 @@ public class JDialogClass {
         init();
     }
 
-    public void setVisible(Boolean flag) {
-        dialog.setVisible(flag);
+    private void setVisible() {
+        dialog.setVisible(true);
     }
 
     public static String getInput(String title, JFrame frame) {
         JDialogClass input = new JDialogClass(title, frame);
-        input.setVisible(true);
+        input.setVisible();
         String text = input.textField.getText();
         return text;
     }
