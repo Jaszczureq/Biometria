@@ -5,6 +5,7 @@ import org.knowm.xchart.CategoryChartBuilder;
 import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.style.Styler;
 import pl.edu.pb.wi.shared.ImageSharedOperations;
+import pl.edu.pb.wi.shared.JDialogClass;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
@@ -17,8 +18,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RasterFormatException;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
 
 public class Viewer extends JFrame {
@@ -44,6 +44,8 @@ public class Viewer extends JFrame {
     private int offsetX = 0, offsetY = 0;
     private int curX, curY;
     String lastPath;
+
+    JDialogClass dialog;
 
     private int n = 256;
     private int margin = 3;
@@ -402,12 +404,13 @@ public class Viewer extends JFrame {
             if (!isImgLoaded())
                 return;
             System.out.println("Img is loaded");
+            int r = Integer.parseInt(JDialogClass.getInput("Enter radius", new JFrame()));
             for (int i = 0; i < img.getWidth(); i++) {
                 for (int j = 0; j < img.getHeight(); j++) {
-                    int temp[] = findMinMaxGrey(i, j, 1);
+                    int temp[] = findMinMaxGrey(i, j, r);
                     int t = (temp[0] + temp[1]) / 2;
-                    int l = temp[1] - temp[0];
-                    if (l >= t)
+                    int l = (temp[1] - temp[0]);
+                    if (l <= t)
                         img.setRGB(i, j, new Color(0, 0, 0).getRGB());
                     else
                         img.setRGB(i, j, new Color(255, 255, 255).getRGB());
@@ -415,17 +418,113 @@ public class Viewer extends JFrame {
             }
             imageLabel.setIcon(new ImageIcon(img));
         });
+        manual.addActionListener((ActionEvent e) -> {
+            if (!isImgLoaded())
+                return;
+            int threshold = Integer.parseInt(JDialogClass.getInput("Enter threshold", new JFrame()));
+            if (threshold > 255 || threshold < 0) {
+                JOptionPane.showMessageDialog(jPanel, "Wrong parameter");
+                return;
+            }
+            Thread t = new Thread(() -> {
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        Color c = new Color(img.getRGB(i, j));
+                        img.setRGB(i, j, (c.getRed() < threshold) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+                    }
+                }
+                imageLabel.setIcon(new ImageIcon(img));
+                doneDialog();
+            });
+            t.start();
+        });
+        otsu.addActionListener((ActionEvent e) -> {
+            if (!isImgLoaded())
+                return;
+            makeHist();
+            List<Double> list = new ArrayList<>();
+            int T = 0;
+            double threshold = 256.0;
+            double sum = img.getHeight() * img.getWidth();
+            for (int i = 1; i < 255; i++) {
+
+                double wB = 0;
+                for (int j = 0; j < i; j++) {
+                    wB += histImgRed[j] / sum;
+                }
+
+                double wF = 0;
+                for (int j = i; j < histImgRed.length; j++) {
+                    wF += histImgRed[j] / sum;
+                }
+
+                double blockAvgB = 0.0;
+                for (int j = 0; j < i; j++) {
+                    blockAvgB += (histImgRed[j] / sum) * j / wB;
+                }
+
+                double blockAvgF = 0.0;
+                for (int j = i; j < histImgRed.length; j++) {
+                    blockAvgF += (histImgRed[j] / sum) * j / wF;
+                }
+
+                double sigmaB = 0.0;
+                for (int j = 0; j < i; j++) {
+                    sigmaB += (histImgRed[j] / sum) * Math.pow((j - blockAvgB), 2) / wB;
+                }
+
+                double sigmaF = 0.0;
+                for (int j = i; j < histImgRed.length; j++) {
+//                    for (int k = 0; k < histImgRed.length; k++) {
+                    sigmaF += (histImgRed[j] / sum) * Math.pow((j - blockAvgF), 2) / wF;
+//                    }
+                }
+                double sigmaW = wF * Math.pow(sigmaF, 2) + wB * Math.pow(sigmaB, 2);
+                list.add(sigmaW);
+            }
+//            final double temp = threshold;
+            Thread t = new Thread(() -> {
+                for (int i = 0; i < img.getWidth(); i++) {
+                    for (int j = 0; j < img.getHeight(); j++) {
+                        Color c = new Color(img.getRGB(i, j));
+                        img.setRGB(i, j, (c.getRed() < list.indexOf(Collections.min(list))) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+                    }
+                }
+                imageLabel.setIcon(new ImageIcon(img));
+                doneDialog();
+            });
+            t.start();
+            System.out.println("Threashold counted by Otsu's method is: " + Collections.min(list) + ", for T: " + list.indexOf(Collections.min(list)));
+
+        });
+        niblack.addActionListener((ActionEvent e) -> {
+            if (!isImgLoaded())
+                return;
+            int k=1;
+
+            for (int i = 0; i < img.getWidth(); i++) {
+                for (int j = 0; j < img.getHeight(); j++) {
+                    double threshold=findAvgGrey(i,j,1)+k;
+                    Color c = new Color(img.getRGB(i, j));
+                    img.setRGB(i, j, (c.getRed() < threshold) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+                }
+            }
+        });
+    }
+
+    private void doneDialog() {
+        JOptionPane.showMessageDialog(jPanel, "Done");
     }
 
     private int[] findMinMaxGrey(int i, int j, int r) {
         int[] arr = {256, -1};
-        int counter = 0;
+        int counter = 0, mistake = 0;
 
         for (int k = i - r; k <= i + r; k++) {
             for (int l = j - r; l <= j + r; l++) {
                 counter++;
                 try {
-                    if (k != i && l != j) {
+                    if (!(k == i && l == j)) {
                         Color c = new Color(img.getRGB(k, l));
                         if (arr[0] > c.getRed())
                             arr[0] = c.getRed();
@@ -433,11 +532,29 @@ public class Viewer extends JFrame {
                             arr[1] = c.getRed();
                     }
                 } catch (ArrayIndexOutOfBoundsException ex) {
+                    mistake++;
                 }
             }
         }
-
         return arr;
+    }
+    private int findAvgGrey(int i, int j, int r) {
+//        int[] arr = {256, -1};
+        int sum=0, counter=0;
+
+        for (int k = i - r; k <= i + r; k++) {
+            for (int l = j - r; l <= j + r; l++) {
+                try {
+//                    if (!(k == i && l == j)) {
+                        Color c = new Color(img.getRGB(k, l));
+                        sum+=c.getRed();
+                        counter++;
+//                    }
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                }
+            }
+        }
+        return sum/counter;
     }
 
     private boolean isImgLoaded() {
@@ -450,6 +567,7 @@ public class Viewer extends JFrame {
 
     private void initComponents() {
 
+//        dialog=new JDialogClass("Title", new JFrame());
         JMenuBar menuBar = new JMenuBar();
         JMenu files = new JMenu("File");
         menuBar.add(files);
