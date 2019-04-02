@@ -29,7 +29,7 @@ public class Viewer extends JFrame {
     private JMenuItem loadImage, saveImage, loadImg, calculateHistograms, lightenHistogram,
             dimHistogram, stretchHistogram, equalizeHistograms, changeMode, undo,
             treasholdingRed, treasholdingGreen, treasholdingBlue, treasholdingAvg,
-            bernsens, manual, otsu, niblack;
+            bernsens, manual, otsu, niblack, lowPass, Prewitts, Sobels, Laplaces, edgeFinding;
 
     private JPanel jPanel = new JPanel();
     private final JLabel imageLabel = new JLabel();
@@ -44,8 +44,6 @@ public class Viewer extends JFrame {
     private int offsetX = 0, offsetY = 0;
     private int curX, curY;
     String lastPath;
-
-    JDialogClass dialog;
 
     private int n = 256;
     private int margin = 3;
@@ -410,10 +408,10 @@ public class Viewer extends JFrame {
             Thread th = new Thread(() -> {
                 for (int i = 0; i < img.getWidth(); i++) {
                     for (int j = 0; j < img.getHeight(); j++) {
-                        int temp[] = findMinMaxGrey(i, j, r);
+                        int[] temp = findMinMaxGrey(i, j, r);
                         int t = (temp[0] + temp[1]) / 2;
                         int l = (temp[1] - temp[0]);
-                        deepCopy.setRGB(i, j, (l < t) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+                        deepCopy.setRGB(i, j, (l < t) ? Color.WHITE.getRGB() : Color.BLACK.getRGB());
                     }
                 }
             });
@@ -446,8 +444,8 @@ public class Viewer extends JFrame {
                 return;
             makeHist();
             List<Double> list = new ArrayList<>();
-            int T = 0;
-            double threshold = 256.0;
+//            int T = 0;
+//            double threshold = 256.0;
             double sum = img.getHeight() * img.getWidth();
             for (int i = 1; i < 255; i++) {
 
@@ -505,14 +503,14 @@ public class Viewer extends JFrame {
                 return;
             BufferedImage deepCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
             double k = Double.parseDouble(JDialogClass.getInput("Enter k param", new JFrame()));
+            int r = Integer.parseInt(JDialogClass.getInput("Enter r param", new JFrame()));
 
             for (int i = 0; i < img.getWidth(); i++) {
                 for (int j = 0; j < img.getHeight(); j++) {
-                    double avg = findAvgGrey(i, j, 1);
-                    double sd = standardDiviation(i, j, 1, avg);
+                    double avg = findAvgGrey(i, j, r);
+                    double sd = standardDiviation(i, j, r, avg);
                     double threshold = avg + (k * sd);
                     Color c = new Color(img.getRGB(i, j));
-//                    double sd = standardDiviation(i, j, findAvgGrey(i, j, 1));
                     deepCopy.setRGB(i, j, (c.getRed() < threshold) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
                 }
             }
@@ -530,7 +528,7 @@ public class Viewer extends JFrame {
                     Color c = new Color(img.getRGB(k, l));
                     sum += Math.pow((double) c.getRed() - avg, 2);
                     counter++;
-                } catch (ArrayIndexOutOfBoundsException ex) {
+                } catch (ArrayIndexOutOfBoundsException ignored) {
                 }
             }
         }
@@ -543,11 +541,9 @@ public class Viewer extends JFrame {
 
     private int[] findMinMaxGrey(int i, int j, int r) {
         int[] arr = {256, -1};
-        int counter = 0, mistake = 0;
 
         for (int k = i - r; k <= i + r; k++) {
             for (int l = j - r; l <= j + r; l++) {
-                counter++;
                 try {
                     if (!(k == i && l == j)) {
                         Color c = new Color(img.getRGB(k, l));
@@ -557,7 +553,6 @@ public class Viewer extends JFrame {
                             arr[1] = c.getRed();
                     }
                 } catch (ArrayIndexOutOfBoundsException ex) {
-                    mistake++;
                 }
             }
         }
@@ -565,18 +560,15 @@ public class Viewer extends JFrame {
     }
 
     private double findAvgGrey(int i, int j, int r) {
-//        int[] arr = {256, -1};
         int sum = 0, counter = 0;
 
         for (int k = i - r; k <= i + r; k++) {
             for (int l = j - r; l <= j + r; l++) {
                 try {
-//                    if (!(k == i && l == j)) {
                     Color c = new Color(img.getRGB(k, l));
                     sum += c.getRed();
                     counter++;
-//                    }
-                } catch (ArrayIndexOutOfBoundsException ex) {
+                } catch (ArrayIndexOutOfBoundsException ignored) {
                 }
             }
         }
@@ -599,10 +591,14 @@ public class Viewer extends JFrame {
         menuBar.add(files);
         JMenu histogram = new JMenu("Histograms");
         menuBar.add(histogram);
-        JMenu binariization = new JMenu("Binarization");
-        menuBar.add(binariization);
+        JMenu binarization = new JMenu("Binarization");
+        menuBar.add(binarization);
         JMenu greyScale = new JMenu("Grey Scale");
-        binariization.add(greyScale);
+        binarization.add(greyScale);
+        JMenu filters = new JMenu("Filters");
+        menuBar.add(filters);
+        JMenu convolutional = new JMenu("Convolutional");
+        filters.add(convolutional);
         loadImage = new JMenuItem("Load image");
         files.add(loadImage);
         loadImg = new JMenuItem("LoadImg");
@@ -632,15 +628,25 @@ public class Viewer extends JFrame {
         treasholdingAvg = new JMenuItem("Average");
         greyScale.add(treasholdingAvg);
         bernsens = new JMenuItem("Bernsen's");
-        binariization.add(bernsens);
+        binarization.add(bernsens);
         manual = new JMenuItem("Manual");
-        binariization.add(manual);
+        binarization.add(manual);
         otsu = new JMenuItem("Otsu's");
-        binariization.add(otsu);
+        binarization.add(otsu);
         niblack = new JMenuItem("Niblack's");
-        binariization.add(niblack);
+        binarization.add(niblack);
         changeMode = new JMenuItem("Change mode");
         histogram.add(changeMode);
+        lowPass = new JMenuItem("Low-Pass");
+        histogram.add(lowPass);
+        Prewitts = new JMenuItem("Prewitt's");
+        histogram.add(Prewitts);
+        Sobels = new JMenuItem("Sobel's");
+        histogram.add(Sobels);
+        Laplaces = new JMenuItem("Laplace's");
+        histogram.add(Laplaces);
+        edgeFinding = new JMenuItem("Edge Finding");
+        histogram.add(edgeFinding);
 
         System.out.println("Test1");
         mouse = new MyMouseAdapter();
@@ -832,8 +838,4 @@ public class Viewer extends JFrame {
             }
         }
     }
-
 }
-
-
-//TODO add some label flying next to mouse pointer
