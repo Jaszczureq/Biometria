@@ -30,7 +30,7 @@ public class Viewer extends JFrame {
     private JMenuItem loadImage, saveImage, loadImg, calculateHistograms, lightenHistogram,
             dimHistogram, stretchHistogram, equalizeHistograms, changeMode, undo,
             treasholdingRed, treasholdingGreen, treasholdingBlue, treasholdingAvg,
-            bernsens, manual, otsu, niblack, mask_3_by_3, Kuhawara, median;
+            bernsens, manual, otsu, niblack, mask_3_by_3, kuwahara, median;
 
     private JPanel jPanel = new JPanel();
     private final JLabel imageLabel = new JLabel();
@@ -556,6 +556,22 @@ public class Viewer extends JFrame {
             imageLabel.setIcon(new ImageIcon(deepCopy));
             doneDialog("Done");
         });
+        kuwahara.addActionListener((ActionEvent e) -> {
+            if (!isImgLoaded()) {
+                return;
+            }
+            int margin = 2;
+            BufferedImage deepCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+//            String[] temp = JDialogArrayClass.getInput("Test", (int) Math.pow(5, 2.0), new JFrame());
+
+            for (int i = margin; i < img.getWidth() - margin; i++) {
+                for (int j = margin; j < img.getHeight() - margin; j++) {
+                    deepCopy.setRGB(i, j, doKuwahara(i, j));
+                }
+            }
+            imageLabel.setIcon(new ImageIcon(deepCopy));
+            doneDialog("Done");
+        });
         median.addActionListener((ActionEvent e) -> {
             if (!isImgLoaded()) {
                 return;
@@ -580,7 +596,7 @@ public class Viewer extends JFrame {
                     deepCopy.setRGB(i, j, doMedian(i, j, m));
                 }
             }
-            img=deepCopy;
+            img = deepCopy;
             imageLabel.setIcon(new ImageIcon(img));
             doneDialog("Done");
         });
@@ -592,15 +608,91 @@ public class Viewer extends JFrame {
         for (int k = i - r; k <= i + r; k++) {
             for (int l = j - r; l <= j + r; l++) {
                 try {
-                    arr.add(img.getRGB(k,l));
+                    arr.add(img.getRGB(k, l));
                 } catch (ArrayIndexOutOfBoundsException ex) {
                 }
             }
         }
         Collections.sort(arr);
-        int out=arr.get(arr.size() / 2);
+        int out = arr.get(arr.size() / 2);
         return out;
     }
+
+    private int doKuwahara(int i, int j) {
+        LinkedList<Integer> temp_list = new LinkedList<>();
+        LinkedList<Integer> temp_a = new LinkedList<>();
+        LinkedList<Integer> temp_b = new LinkedList<>();
+        LinkedList<Integer> temp_c = new LinkedList<>();
+
+        temp_list.add(0);
+        temp_list.add(2);
+        temp_list.add(10);
+        temp_list.add(12);
+        int x = 0, y = 0, z = 0;
+
+        for (int k = 0; k < ; k++) {
+            
+        }
+        
+//        for (int l = 0; l < 2; l += 2) {
+//            for (int l = 0; l < 2; l += 2) {
+//                for (int k = l; k < 3; k++) {
+//                    for (int m = 0; m < 3; m++) {
+//
+//                        x += new Color(img.getRGB(i - k, j + counter)).getRed();
+//                        y += new Color(img.getRGB(i - k, j + counter)).getGreen();
+//                        z += new Color(img.getRGB(i - k, j + counter)).getBlue();
+//                    }
+//                }
+//                int a = 0, b = 0, c = 0;
+//                for (int k = 0; k < 9; k++) {
+//                    counter++;
+//                    if (counter % 5 == 3)
+//                        counter += 2;
+//                }
+//                temp_a.add(a);
+//                temp_b.add(b);
+//                temp_c.add(c);
+//            }
+//        }
+        return new Color(Collections.min(temp_a), Collections.min(temp_b), Collections.min(temp_c)).getRGB();
+    }
+//    private int doKuwahara2(int i, int j) {
+//        LinkedList<Integer> temp_list = new LinkedList<>();
+//        LinkedList<Integer> temp_a = new LinkedList<>();
+//        LinkedList<Integer> temp_b = new LinkedList<>();
+//        LinkedList<Integer> temp_c = new LinkedList<>();
+//
+//        temp_list.add(0);
+//        temp_list.add(2);
+//        temp_list.add(10);
+//        temp_list.add(12);
+//        int x = 0, y = 0, z = 0, counter = 0;
+//        for (int l : temp_list) {
+//            for (int k = l; k < 9; k++) {
+//                x += new Color(img.getRGB(i - k, j + counter)).getRed();
+//                y += new Color(img.getRGB(i - k, j + counter)).getGreen();
+//                z += new Color(img.getRGB(i - k, j + counter)).getBlue();
+//                counter++;
+//                if (counter % 5 == 3)
+//                    counter += 2;
+//            }
+//            int a = 0, b = 0, c = 0;
+//            counter = 0;
+//            for (int k = 0; k < 9; k++) {
+//                a += Math.pow(x - new Color(img.getRGB(i - k, j + counter)).getRed(), 2.0);
+//                b += Math.pow(y - new Color(img.getRGB(i - k, j + counter)).getGreen(), 2.0);
+//                c += Math.pow(z - new Color(img.getRGB(i - k, j + counter)).getBlue(), 2.0);
+//                counter++;
+//                if (counter % 5 == 3)
+//                    counter += 2;
+//            }
+//            temp_a.add(a);
+//            temp_b.add(b);
+//            temp_c.add(c);
+//        }
+//        return new Color(Collections.min(temp_a), Collections.min(temp_b), Collections.min(temp_c)).getRGB();
+//    }
 
     private Color doMask(int i, int j, String[] mask) {
         int x = 0, y = 0, z = 0, counter = 0, sum = 0;
@@ -750,8 +842,8 @@ public class Viewer extends JFrame {
         histogram.add(changeMode);
         mask_3_by_3 = new JMenuItem("Low-Pass");
         filters.add(mask_3_by_3);
-        Kuhawara = new JMenuItem("Kuhawara");
-        filters.add(Kuhawara);
+        kuwahara = new JMenuItem("Kuwahara");
+        filters.add(kuwahara);
         median = new JMenuItem("Median");
         filters.add(median);
 
