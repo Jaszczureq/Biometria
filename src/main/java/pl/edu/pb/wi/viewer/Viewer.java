@@ -5,6 +5,7 @@ import org.knowm.xchart.CategoryChartBuilder;
 import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.style.Styler;
 import pl.edu.pb.wi.shared.ImageSharedOperations;
+import pl.edu.pb.wi.shared.JDialogArrayClass;
 import pl.edu.pb.wi.shared.JDialogClass;
 
 import javax.swing.*;
@@ -29,7 +30,7 @@ public class Viewer extends JFrame {
     private JMenuItem loadImage, saveImage, loadImg, calculateHistograms, lightenHistogram,
             dimHistogram, stretchHistogram, equalizeHistograms, changeMode, undo,
             treasholdingRed, treasholdingGreen, treasholdingBlue, treasholdingAvg,
-            bernsens, manual, otsu, niblack, lowPass, Prewitts, Sobels, Laplaces, edgeFinding;
+            bernsens, manual, otsu, niblack, mask_3_by_3, Kuhawara, median;
 
     private JPanel jPanel = new JPanel();
     private final JLabel imageLabel = new JLabel();
@@ -417,7 +418,7 @@ public class Viewer extends JFrame {
             });
             th.start();
             imageLabel.setIcon(new ImageIcon(deepCopy));
-            doneDialog();
+            doneDialog("Done");
         });
         manual.addActionListener((ActionEvent e) -> {
             if (!isImgLoaded())
@@ -435,7 +436,7 @@ public class Viewer extends JFrame {
                     }
                 }
                 imageLabel.setIcon(new ImageIcon(img));
-                doneDialog();
+                doneDialog("Done");
             });
             t.start();
         });
@@ -492,7 +493,7 @@ public class Viewer extends JFrame {
                     }
                 }
                 imageLabel.setIcon(new ImageIcon(img));
-                doneDialog();
+                doneDialog("Done");
             });
             t.start();
             System.out.println("Threashold counted by Otsu's method is: " + Collections.min(list) + ", for T: " + list.indexOf(Collections.min(list)));
@@ -515,8 +516,121 @@ public class Viewer extends JFrame {
                 }
             }
             imageLabel.setIcon(new ImageIcon(deepCopy));
-            doneDialog();
+            doneDialog("Done");
         });
+        mask_3_by_3.addActionListener((ActionEvent e) -> {
+            if (!isImgLoaded()) {
+                return;
+            }
+            BufferedImage deepCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+            int m;
+            try {
+                m = Integer.parseInt(JDialogClass.getInput("Enter radius of mask", new JFrame()));
+            } catch (NumberFormatException ex) {
+                doneDialog("Param is not a integer");
+                return;
+            }
+            if (m < 1) {
+                doneDialog("Param is less than 1");
+                return;
+            }
+            m = 2 * m + 1;
+            String[] temp = JDialogArrayClass.getInput("Test", (int) Math.pow(m, 2.0), new JFrame());
+            int test = 0;
+            for (String t : temp) {
+                try {
+                    test = Integer.parseInt(t);
+                } catch (NumberFormatException ex) {
+                    doneDialog("Value is not a integer");
+                    return;
+                }
+            }
+
+            for (int i = 1; i < img.getWidth() - 1; i++) {
+                for (int j = 1; j < img.getHeight() - 1; j++) {
+                    Color c = doMask(i, j, temp);
+                    deepCopy.setRGB(i, j, c.getRGB());
+//                    deepCopy.setRGB(i, j, new Color(c.getRed(), c.getRed(), c.getRed()).getRGB());
+                }
+            }
+            imageLabel.setIcon(new ImageIcon(deepCopy));
+            doneDialog("Done");
+        });
+        median.addActionListener((ActionEvent e) -> {
+            if (!isImgLoaded()) {
+                return;
+            }
+            BufferedImage deepCopy = new BufferedImage(img.getWidth(), img.getHeight(), img.getType());
+            int m;
+            try {
+                m = Integer.parseInt(JDialogClass.getInput("Enter radius of mask", new JFrame()));
+            } catch (NumberFormatException ex) {
+                doneDialog("Param is not a integer");
+                return;
+            }
+            if (m < 1) {
+                doneDialog("Param is less than 1");
+                return;
+            } else if (m > 2) {
+                doneDialog("Param is greater than 2");
+                return;
+            }
+            for (int i = 0; i < img.getWidth(); i++) {
+                for (int j = 0; j < img.getHeight(); j++) {
+                    deepCopy.setRGB(i, j, doMedian(i, j, m));
+                }
+            }
+            img=deepCopy;
+            imageLabel.setIcon(new ImageIcon(img));
+            doneDialog("Done");
+        });
+    }
+
+    private int doMedian(int i, int j, int r) {
+//        int[] arr = new int[(int) Math.pow(2 * r + 1, 2)];
+        LinkedList<Integer> arr = new LinkedList<>();
+        for (int k = i - r; k <= i + r; k++) {
+            for (int l = j - r; l <= j + r; l++) {
+                try {
+                    arr.add(img.getRGB(k,l));
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                }
+            }
+        }
+        Collections.sort(arr);
+        int out=arr.get(arr.size() / 2);
+        return out;
+    }
+
+    private Color doMask(int i, int j, String[] mask) {
+        int x = 0, y = 0, z = 0, counter = 0, sum = 0;
+        double sqrt = Math.sqrt(mask.length);
+        int r = (int) sqrt;
+        r = (r - 1) / 2;
+
+        for (String a : mask) {
+            sum += Integer.parseInt(a);
+        }
+
+        for (int k = i - r; k <= i + r; k++) {
+            for (int l = j - r; l <= j + r; l++) {
+                try {
+                    Color temp = new Color(img.getRGB(k, l));
+                    x += temp.getRed() * Integer.parseInt(mask[counter]);
+                    y += temp.getGreen() * Integer.parseInt(mask[counter]);
+                    z += temp.getBlue() * Integer.parseInt(mask[counter]);
+                    counter++;
+                } catch (ArrayIndexOutOfBoundsException ignored) {
+                }
+            }
+        }
+        if (sum != 0) {
+            x = x / sum;
+            y = y / sum;
+            z = z / sum;
+        }
+
+        return new Color(inBetweenOf(x), inBetweenOf(y), inBetweenOf(z));
     }
 
     private double standardDiviation(int i, int j, int r, double avg) {
@@ -535,8 +649,8 @@ public class Viewer extends JFrame {
         return Math.sqrt(sum / counter);
     }
 
-    private void doneDialog() {
-        JOptionPane.showMessageDialog(jPanel, "Done");
+    private void doneDialog(String msg) {
+        JOptionPane.showMessageDialog(jPanel, msg);
     }
 
     private int[] findMinMaxGrey(int i, int j, int r) {
@@ -585,7 +699,6 @@ public class Viewer extends JFrame {
 
     private void initComponents() {
 
-//        dialog=new JDialogClass("Title", new JFrame());
         JMenuBar menuBar = new JMenuBar();
         JMenu files = new JMenu("File");
         menuBar.add(files);
@@ -597,8 +710,6 @@ public class Viewer extends JFrame {
         binarization.add(greyScale);
         JMenu filters = new JMenu("Filters");
         menuBar.add(filters);
-        JMenu convolutional = new JMenu("Convolutional");
-        filters.add(convolutional);
         loadImage = new JMenuItem("Load image");
         files.add(loadImage);
         loadImg = new JMenuItem("LoadImg");
@@ -637,16 +748,12 @@ public class Viewer extends JFrame {
         binarization.add(niblack);
         changeMode = new JMenuItem("Change mode");
         histogram.add(changeMode);
-        lowPass = new JMenuItem("Low-Pass");
-        histogram.add(lowPass);
-        Prewitts = new JMenuItem("Prewitt's");
-        histogram.add(Prewitts);
-        Sobels = new JMenuItem("Sobel's");
-        histogram.add(Sobels);
-        Laplaces = new JMenuItem("Laplace's");
-        histogram.add(Laplaces);
-        edgeFinding = new JMenuItem("Edge Finding");
-        histogram.add(edgeFinding);
+        mask_3_by_3 = new JMenuItem("Low-Pass");
+        filters.add(mask_3_by_3);
+        Kuhawara = new JMenuItem("Kuhawara");
+        filters.add(Kuhawara);
+        median = new JMenuItem("Median");
+        filters.add(median);
 
         System.out.println("Test1");
         mouse = new MyMouseAdapter();
